@@ -1,3 +1,3 @@
 import { writable } from "svelte/store";
 
-export let state = writable("landing");
+export let state = writable("grid");

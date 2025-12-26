@@ -32,6 +32,54 @@
   $: imageSpacing = ar > 16/9 ? (innerHeight * 0.5 * 0.76) : (innerWidth * 0.24);
   $: maxScroll = (imgs.length - 1) * imageSpacing;
 
+  let gridItems = [];
+  let gridAutoPlayTimer = null;
+
+  function generateGridLayout() {
+    return imgs.map((img, i) => ({
+      id: i,
+      src: img,
+      x: Math.random() * 80 - 40,
+      y: Math.random() * 80 - 40,
+      width: 150 + Math.random() * 150,
+      height: 100 + Math.random() * 150,
+      rotation: Math.random() * 20 - 10,
+      scale: 0.3 + Math.random() * 0.4
+    }));
+  }
+
+  function startGridAutoPlay() {
+    let step = 0;
+    const totalSteps = 40;
+
+    const animate = () => {
+      step++;
+      const progress = step / totalSteps;
+
+      gridItems = gridItems.map(item => ({
+        ...item,
+        scale: 0.3 + Math.random() * 0.4 + progress * 0.3
+      }));
+
+      if (progress >= 1) {
+        setTimeout(() => {
+          $state = "carousel";
+          carouselScroll = active * imageSpacing;
+          delay = true;
+        }, 500);
+      } else {
+        gridAutoPlayTimer = requestAnimationFrame(animate);
+      }
+    };
+
+    gridAutoPlayTimer = requestAnimationFrame(animate);
+  }
+
+  $: if ($state === "grid" && gridItems.length === 0) {
+    gridItems = generateGridLayout();
+    startGridAutoPlay();
+  }
+
   function setActive(n) {
     if ($state === "landing" && n >= 0 && n <= imgs.length - 1) {
       active = n;
@@ -45,6 +93,12 @@
 
   function handleScroll(e) {
     switch ($state) {
+      case "grid":
+        if (gridAutoPlayTimer) cancelAnimationFrame(gridAutoPlayTimer);
+        $state = "carousel";
+        carouselScroll = active * imageSpacing;
+        delay = true;
+        break;
       case "landing":
         $state = "carousel";
         carouselScroll = active * imageSpacing;
@@ -89,7 +143,25 @@
 
 <svelte:window on:keydown={handleKey} on:mousewheel={handleScroll} bind:innerWidth bind:innerHeight />
 
-<main class="mx-auto bg-zinc-900 text-zinc-50 h-screen">
+<main class="mx-auto bg-zinc-900 text-zinc-50 h-screen relative overflow-hidden">
+  {#if $state === "grid"}
+    <div class="absolute inset-0 flex items-center justify-center">
+      {#each gridItems as item (item.id)}
+        <div
+          class="absolute bg-no-repeat bg-cover duration-500 ease-out-smooth"
+          style:background-image="url({item.src})"
+          style:width="{item.width}px"
+          style:height="{item.height}px"
+          style:left="50%"
+          style:top="50%"
+          style:transform="translate(calc(-50% + {item.x}%), calc(-50% + {item.y}%)) rotate({item.rotation}deg) scale({item.scale})"
+          style:z-index={Math.floor(item.scale * 100)}
+        ></div>
+      {/each}
+    </div>
+  {/if}
+
+  {#if $state !== "grid"}
   <!-- style:width={$state === "carousel" ? "300px" : "100vw"} -->
   <!-- style:clip-path={$state === "carousel" ? "polygon(37vw 25vh, 37vw 75vh, 63vw 75vh, 63vw 25vh)" : "polygon(0vw 0vh, 0vw 100vh, 100vw 100vh, 100vw 0vh)"} -->
 <!--   style:clip-path={$state === "carousel" ? -->
@@ -132,6 +204,8 @@
       ></div>
     {/each}
   </div>
+  {/if}
+
   {#if $state === "landing"}
     <NavButton dir="left" {active} on:click={() => setActive(active - 1)} />
   {/if}
