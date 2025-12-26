@@ -34,39 +34,59 @@
 
   let gridItems = [];
   let gridAutoPlayTimer = null;
+  let centerImageId = null;
 
   function generateGridLayout() {
-    return imgs.map((img, i) => ({
-      id: i,
-      src: img,
-      x: Math.random() * 80 - 40,
-      y: Math.random() * 80 - 40,
-      width: 150 + Math.random() * 150,
-      height: 100 + Math.random() * 150,
-      rotation: Math.random() * 20 - 10,
-      scale: 0.3 + Math.random() * 0.4
-    }));
+    const centerIdx = Math.floor(imgs.length / 2);
+    centerImageId = centerIdx;
+
+    return imgs.map((img, i) => {
+      const isCenter = i === centerIdx;
+      return {
+        id: i,
+        src: img,
+        x: isCenter ? 0 : Math.random() * 100 - 50,
+        y: isCenter ? 0 : Math.random() * 100 - 50,
+        width: 200,
+        height: 200,
+        rotation: isCenter ? 0 : Math.random() * 20 - 10,
+        scale: isCenter ? 0.5 : 0.2 + Math.random() * 0.3,
+        opacity: 1
+      };
+    });
   }
 
   function startGridAutoPlay() {
     let step = 0;
-    const totalSteps = 40;
+    const totalSteps = 60;
 
     const animate = () => {
       step++;
       const progress = step / totalSteps;
 
-      gridItems = gridItems.map(item => ({
-        ...item,
-        scale: 0.3 + Math.random() * 0.4 + progress * 0.3
-      }));
+      gridItems = gridItems.map(item => {
+        const isCenter = item.id === centerImageId;
+        if (isCenter) {
+          return {
+            ...item,
+            scale: 0.5 + progress * 4.5,
+            opacity: 1
+          };
+        } else {
+          return {
+            ...item,
+            opacity: Math.max(0, 1 - progress * 1.5),
+            scale: item.scale * (1 - progress * 0.3)
+          };
+        }
+      });
 
       if (progress >= 1) {
         setTimeout(() => {
           $state = "carousel";
           carouselScroll = active * imageSpacing;
           delay = true;
-        }, 500);
+        }, 300);
       } else {
         gridAutoPlayTimer = requestAnimationFrame(animate);
       }
@@ -148,14 +168,15 @@
     <div class="absolute inset-0 flex items-center justify-center">
       {#each gridItems as item (item.id)}
         <div
-          class="absolute bg-no-repeat bg-cover duration-500 ease-out-smooth"
+          class="absolute bg-no-repeat bg-cover transition-all duration-100"
           style:background-image="url({item.src})"
           style:width="{item.width}px"
           style:height="{item.height}px"
           style:left="50%"
           style:top="50%"
           style:transform="translate(calc(-50% + {item.x}%), calc(-50% + {item.y}%)) rotate({item.rotation}deg) scale({item.scale})"
-          style:z-index={Math.floor(item.scale * 100)}
+          style:opacity={item.opacity}
+          style:z-index={item.id === centerImageId ? 50 : Math.floor(item.scale * 10)}
         ></div>
       {/each}
     </div>
