@@ -29,6 +29,8 @@
   $: ar = innerWidth / innerHeight;
   $: hvw = innerWidth / 2; // half viewport width
   $: d = (ar > 16/9 ? (innerHeight/2) * 0.76 : hvw * 0.48);
+  $: imageSpacing = ar > 16/9 ? (innerHeight * 0.5 * 0.76) : (innerWidth * 0.24);
+  $: maxScroll = (imgs.length - 1) * imageSpacing;
 
   function setActive(n) {
     if ($state === "landing" && n >= 0 && n <= imgs.length - 1) {
@@ -45,11 +47,12 @@
     switch ($state) {
       case "landing":
         $state = "carousel";
-        carouselScroll = active * 320;
+        carouselScroll = active * imageSpacing;
         delay = true;
         break;
       case "carousel":
         carouselScroll += e.deltaY * 0.5;
+        carouselScroll = Math.max(0, Math.min(carouselScroll, maxScroll));
         break;
     }
   }
@@ -87,10 +90,6 @@
 <svelte:window on:keydown={handleKey} on:mousewheel={handleScroll} bind:innerWidth bind:innerHeight />
 
 <main class="mx-auto bg-zinc-900 text-zinc-50 h-screen">
-  <div class="absolute top-8 left-8 text-2xl font-bold flex flex-col z-50">
-    <div>{Math.floor(carouselScroll)}</div>
-    <div>active: {active}</div>
-  </div>
   <!-- style:width={$state === "carousel" ? "300px" : "100vw"} -->
   <!-- style:clip-path={$state === "carousel" ? "polygon(37vw 25vh, 37vw 75vh, 63vw 75vh, 63vw 25vh)" : "polygon(0vw 0vh, 0vw 100vh, 100vw 100vh, 100vw 0vh)"} -->
 <!--   style:clip-path={$state === "carousel" ? -->
